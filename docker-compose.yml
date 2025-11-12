@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # PowerAnalysis Web 应用程序
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: poweranalysis-web
+    ports:
+      - "8080:80"
+      - "8443:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/PowerAnalysis.db
+    volumes:
+      # 持久化数据库文件
+      - ./data:/app/data
+      # 如果有参考文件需要外部挂载
+      - ./Data/reference:/app/Data/reference:ro
+    restart: unless-stopped
+    networks:
+      - poweranalysis-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx 反向代理 (可选)
+  nginx:
+    image: nginx:alpine
+    container_name: poweranalysis-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - poweranalysis-network
+    profiles:
+      - with-nginx
+
+  # 数据库备份服务 (可选)
+  db-backup:
+    image: alpine:latest
+    container_name: poweranalysis-backup
+    volumes:
+      - ./data:/data
+      - ./backups:/backups
+    command: >
+      sh -c "
+        while true; do
+          echo 'Creating backup...'
+          timestamp=$$(date +%Y%m%d_%H%M%S)
+          cp /data/PowerAnalysis.db /backups/PowerAnalysis_$$timestamp.db
+          find /backups -name '*.db' -mtime +7 -delete
+          echo 'Backup completed'
+          sleep 86400
+        done
+      "
+    restart: unless-stopped
+    networks:
+      - poweranalysis-network
+    profiles:
+      - with-backup
+
+networks:
+  poweranalysis-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local
+  backups:
+    driver: local

@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  web:
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_USERNAME:-poweranalysis}/poweranalysis:${TAG:-latest}
+    container_name: poweranalysis-web-prod
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/PowerAnalysis.db
+    volumes:
+      - poweranalysis-data:/app/data
+      - ./Data/reference:/app/Data/reference:ro
+    restart: always
+    networks:
+      - poweranalysis-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    image: nginx:alpine
+    container_name: poweranalysis-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    depends_on:
+      - web
+    restart: always
+    networks:
+      - poweranalysis-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  poweranalysis-network:
+    driver: bridge
+
+volumes:
+  poweranalysis-data:
+    driver: local
+  nginx-logs:
+    driver: local

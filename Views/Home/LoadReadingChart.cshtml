@@ -1,0 +1,545 @@
+@{
+    ViewData["Title"] = "負載數據查詢與圖表";
+}
+
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<!-- Custom Styles -->
+<link rel="stylesheet" href="~/css/styles.css" asp-append-version="true" />
+
+<style>
+    body {
+        padding: 20px 20px 60px 20px;
+    }
+
+    .glass-card {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .chart-section {
+        background: rgba(255, 255, 255, 0.45);
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 24px;
+        border: 1px solid rgba(200, 190, 175, 0.4);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        border: 1px solid rgba(200, 190, 175, 0.3);
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .date-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .input-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .input-group label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        z-index: 10;
+    }
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid rgba(102, 126, 234, 0.2);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .alert-message {
+        background: rgba(255, 107, 107, 0.15);
+        border: 1px solid rgba(255, 107, 107, 0.3);
+        color: #d32f2f;
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-top: 16px;
+        display: none;
+    }
+
+    .info-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .chart-badge {
+        display: inline-block;
+        background: var(--primary-gradient);
+        color: white;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-left: 12px;
+    }
+
+    @@media (max-width: 768px) {
+        .date-inputs {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="glass-card">
+    <h1>
+        <i class="bi bi-graph-up-arrow"></i> 負載數據查詢與圖表
+    </h1>
+    <p>選擇日期範圍，查看電力負載趨勢分析</p>
+
+    <!-- 日期選擇區 -->
+    <div class="info-block">
+        <div class="date-inputs">
+            <div class="input-group">
+                <label for="startDate">
+                    <i class="bi bi-calendar-range"></i> 起始日期
+                </label>
+                <input type="text" class="input-field" id="startDate" placeholder="選擇起始日期">
+            </div>
+            <div class="input-group">
+                <label for="endDate">
+                    <i class="bi bi-calendar-check"></i> 結束日期
+                </label>
+                <input type="text" class="input-field" id="endDate" placeholder="選擇結束日期">
+            </div>
+        </div>
+        <button type="button" class="btn" id="queryBtn" style="width: 100%;">
+            <i class="bi bi-search"></i> 查詢數據
+        </button>
+        <div class="info-text">
+            <i class="bi bi-info-circle"></i>
+            <span id="queryInfo">正在載入資料庫日期範圍...</span>
+        </div>
+    </div>
+
+    <!-- 圖表區域 -->
+    <div class="chart-section" id="chartCard" style="display: none; position: relative;">
+        <div id="loadingIndicator" class="loading-overlay" style="display: none;">
+            <div style="text-align: center;">
+                <div class="spinner"></div>
+                <p style="margin-top: 16px; color: var(--text-primary); font-weight: 600;">正在載入數據...</p>
+            </div>
+        </div>
+
+        <h5 style="margin-bottom: 20px; display: flex; align-items: center;">
+            <i class="bi bi-graph-up"></i>
+            <span style="margin-left: 8px;">負載趨勢圖</span>
+            <span class="chart-badge" id="chartType"></span>
+        </h5>
+        <canvas id="loadChart" style="max-height: 450px;"></canvas>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">數據點數</div>
+                <div class="stat-value" id="dataPointCount">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">平均負載</div>
+                <div class="stat-value" id="avgLoad">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">峰值負載</div>
+                <div class="stat-value" id="peakLoad">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 錯誤訊息 -->
+    <div id="errorAlert" class="alert-message">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span id="errorMessage"></span>
+    </div>
+</div>
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+    let chart = null;
+    let startDatePicker, endDatePicker;
+    let dbDateRange = null;
+
+    // 初始化：先獲取資料庫日期範圍
+    async function initialize() {
+        try {
+            const response = await fetch('/api/loadreading/daterange');
+            if (!response.ok) {
+                throw new Error('無法獲取資料庫日期範圍');
+            }
+
+            dbDateRange = await response.json();
+
+            if (!dbDateRange.minDate || !dbDateRange.maxDate) {
+                showError('資料庫中沒有數據，請先導入數據');
+                return;
+            }
+
+            // 初始化日期選擇器
+            initializeDatePickers();
+
+            // 自動載入預設數據
+            queryAndDisplayChart();
+        } catch (error) {
+            console.error('Error initializing:', error);
+            showError('初始化失敗: ' + error.message);
+        }
+    }
+
+    // 初始化日期選擇器
+    function initializeDatePickers() {
+        const maxDate = new Date(dbDateRange.maxDate);
+        const minDate = new Date(dbDateRange.minDate);
+
+        // 計算預設範圍：資料庫最大日期往前推7天，或從最小日期開始
+        const defaultEndDate = maxDate;
+        const defaultStartDate = new Date(maxDate);
+        defaultStartDate.setDate(defaultStartDate.getDate() - 7);
+
+        // 如果計算出的起始日期早於資料庫最小日期，則使用最小日期
+        const finalStartDate = defaultStartDate < minDate ? minDate : defaultStartDate;
+
+        // 初始化起始日期選擇器
+        startDatePicker = flatpickr("#startDate", {
+            locale: 'zh_tw',
+            dateFormat: 'Y-m-d',
+            defaultDate: finalStartDate,
+            minDate: minDate,
+            maxDate: maxDate,
+            onChange: function(selectedDates, dateStr, instance) {
+                endDatePicker.set('minDate', dateStr);
+                updateQueryInfo();
+            }
+        });
+
+        // 初始化結束日期選擇器
+        endDatePicker = flatpickr("#endDate", {
+            locale: 'zh_tw',
+            dateFormat: 'Y-m-d',
+            defaultDate: defaultEndDate,
+            minDate: minDate,
+            maxDate: maxDate,
+            onChange: function(selectedDates, dateStr, instance) {
+                startDatePicker.set('maxDate', dateStr);
+                updateQueryInfo();
+            }
+        });
+
+        updateQueryInfo();
+    }
+
+    // 更新查詢資訊
+    function updateQueryInfo() {
+        const start = startDatePicker.selectedDates[0];
+        const end = endDatePicker.selectedDates[0];
+
+        if (start && end) {
+            const diffTime = Math.abs(end - start);
+            // 計算天數，包含起始和結束日期（+1）
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+            let chartType = '';
+            if (diffDays === 1) {
+                chartType = '當天數據（按小時顯示）';
+            } else if (diffDays <= 7) {
+                chartType = `${diffDays} 天數據（按小時顯示）`;
+            } else if (diffDays <= 60) {
+                chartType = `${diffDays} 天數據（按日顯示）`;
+            } else {
+                const weeks = Math.ceil(diffDays / 7);
+                chartType = `${diffDays} 天數據（按週顯示，共 ${weeks} 週）`;
+            }
+
+            document.getElementById('queryInfo').textContent = chartType;
+        }
+    }
+
+    // 查詢數據並顯示圖表
+    async function queryAndDisplayChart() {
+        const startDate = startDatePicker.selectedDates[0];
+        const endDate = endDatePicker.selectedDates[0];
+
+        if (!startDate || !endDate) {
+            showError('請選擇起始日期和結束日期');
+            return;
+        }
+
+        // 格式化日期為 YYYY-MM-DD
+        const startStr = startDate.toISOString().split('T')[0];
+        const endStr = endDate.toISOString().split('T')[0];
+
+        // 計算日期差異，包含起始和結束日期（+1）
+        const diffTime = Math.abs(endDate - startDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        // 顯示載入指示器
+        showLoading();
+
+        try {
+            // 調用 API 獲取數據
+            const response = await fetch(`/api/loadreading/aggregated?startDate=${startStr}&endDate=${endStr}&days=${diffDays}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data || data.length === 0) {
+                showError('查詢範圍內沒有數據');
+                return;
+            }
+
+            // 顯示圖表
+            displayChart(data, diffDays);
+
+            // 顯示統計資訊
+            displayStatistics(data);
+
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            showError('獲取數據失敗: ' + error.message);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 顯示圖表
+    function displayChart(data, diffDays) {
+        const ctx = document.getElementById('loadChart').getContext('2d');
+
+        // 銷毀舊圖表
+        if (chart) {
+            chart.destroy();
+        }
+
+        // 準備圖表數據
+        let labels = data.map(d => d.label);
+        let values = data.map(d => d.value);
+        let chartTypeText = '';
+
+        if (diffDays === 1) {
+            chartTypeText = '按小時';
+        } else if (diffDays <= 7) {
+            chartTypeText = '按小時';
+        } else if (diffDays <= 60) {
+            chartTypeText = '按日';
+        } else {
+            chartTypeText = '按週';
+        }
+
+        // 創建圖表
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '負載量 (MW)',
+                    data: values,
+                    borderColor: 'rgb(102, 126, 234)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: diffDays <= 7 ? 2 : 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgb(102, 126, 234)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: 'var(--font-family)',
+                                size: 13
+                            }
+                        }
+                    },
+                    title: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#222',
+                        bodyColor: '#555',
+                        borderColor: 'rgba(102, 126, 234, 0.5)',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return '負載: ' + context.parsed.y.toFixed(3) + ' MW';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: diffDays === 1 ? '時間' : (diffDays <= 7 ? '日期/時間' : (diffDays <= 60 ? '日期' : '週數')),
+                            font: {
+                                family: 'var(--font-family)',
+                                size: 13,
+                                weight: '600'
+                            }
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: '負載量 (MW)',
+                            font: {
+                                family: 'var(--font-family)',
+                                size: 13,
+                                weight: '600'
+                            }
+                        },
+                        beginAtZero: false
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+
+        // 更新圖表類型標籤
+        document.getElementById('chartType').textContent = chartTypeText;
+
+        // 顯示圖表卡片
+        document.getElementById('chartCard').style.display = 'block';
+        hideError();
+    }
+
+    // 顯示統計資訊
+    function displayStatistics(data) {
+        const values = data.map(d => d.value);
+        const count = values.length;
+        const sum = values.reduce((a, b) => a + b, 0);
+        const avg = sum / count;
+        const peak = Math.max(...values);
+
+        document.getElementById('dataPointCount').textContent = count;
+        document.getElementById('avgLoad').textContent = avg.toFixed(3) + ' MW';
+        document.getElementById('peakLoad').textContent = peak.toFixed(3) + ' MW';
+    }
+
+    // 顯示載入指示器
+    function showLoading() {
+        document.getElementById('loadingIndicator').style.display = 'flex';
+        document.getElementById('chartCard').style.display = 'block';
+        hideError();
+    }
+
+    // 隱藏載入指示器
+    function hideLoading() {
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+
+    // 顯示錯誤訊息
+    function showError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        document.getElementById('errorAlert').style.display = 'block';
+        document.getElementById('chartCard').style.display = 'none';
+    }
+
+    // 隱藏錯誤訊息
+    function hideError() {
+        document.getElementById('errorAlert').style.display = 'none';
+    }
+
+    // 頁面載入完成後初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 綁定查詢按鈕事件
+        document.getElementById('queryBtn').addEventListener('click', queryAndDisplayChart);
+
+        // 初始化並載入數據
+        initialize();
+    });
+</script>
