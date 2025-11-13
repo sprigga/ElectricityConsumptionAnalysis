@@ -1,8 +1,15 @@
 # Power Analysis Application
 
+[![CI/CD Pipeline](https://github.com/sprigga/ElectricityConsumptionAnalysis/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/sprigga/ElectricityConsumptionAnalysis/actions/workflows/ci-cd.yml)
+
 ## Overview
 
 The Power Analysis Application is a web-based system designed to import, store, analyze and visualize electrical load readings. The application allows users to import electricity consumption data from Excel files, store it in a time-series format, and provides API endpoints for data retrieval and analysis.
+
+## Screenshots
+
+![Screenshot 1](screenshot/image1.png)
+![Screenshot 2](screenshot/image2.png)
 
 ## Purpose
 
@@ -39,6 +46,9 @@ PowerAnalysis/
 ├── Repositories/         # Data access layer
 │   ├── ILoadReadingRepository.cs
 │   └── LoadReadingRepository.cs
+├── Scripts/              # Test and utility scripts
+│   ├── test-chart-features.sh    # Chart feature testing script
+│   └── test-import-api.sh        # API testing script
 ├── Services/             # Business logic
 │   ├── ILoadReadingImportService.cs
 │   └── LoadReadingImportService.cs
@@ -62,14 +72,14 @@ PowerAnalysis/
 
 #### API Endpoints
 - `GET /api/loadreading` - Retrieve all load readings
-- `GET /api/loadreading/range` - Get load readings by date range
-- `GET /api/loadreading/aggregated` - Get aggregated data for charts
+- `GET /api/loadreading/range?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}` - Get load readings by date range
+- `GET /api/loadreading/aggregated?startDate={yyyy-MM-ddTHH:mm:ss}&endDate={yyyy-MM-ddTHH:mm:ss}&days={int}&reportMode={bool}` - Get aggregated data for charts
 - `GET /api/loadreading/count` - Get total record count
 - `GET /api/loadreading/daterange` - Get date range of available data
 - `POST /api/loadreading/import` - Import from default Excel file
-- `POST /api/loadreading/import/custom` - Import from custom Excel file
-- `POST /api/loadreading/validate` - Validate Excel file format
-- `DELETE /api/loadreading/range` - Delete records by date range
+- `POST /api/loadreading/import/custom?filePath={string}&sheetName={string}&dataSource={string}` - Import from custom Excel file
+- `POST /api/loadreading/validate?filePath={string}&sheetName={string}` - Validate Excel file format
+- `DELETE /api/loadreading/range?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}` - Delete records by date range
 
 #### MVC Views
 - `HomeController`: Provides web interface with LoadReadingChart view for visualization
@@ -110,6 +120,17 @@ Database indexes are optimized for:
 - Timestamp-based queries
 - Data source filtering
 - Combined timestamp and data source queries
+
+## CI/CD
+
+This project uses a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) for Continuous Integration and Continuous Deployment.
+
+The pipeline includes the following stages:
+- **Build and Test**: Compiles the application, runs tests, and publishes the artifact.
+- **Build Docker Image**: Builds and pushes a Docker image to GitHub Container Registry.
+- **Deploy to Development**: Deploys the application to the development environment on pushes to the `develop` branch.
+- **Deploy to Production**: Deploys the application to the production environment on pushes to the `main` branch or on version tags.
+- **Security Scan**: Scans the Docker image for vulnerabilities.
 
 ## Configuration
 
@@ -175,17 +196,26 @@ dotnet run
 ### Testing
 The project includes a test import functionality:
 - Console-based import testing via TestImport.cs
-- API testing script (test-import-api.sh) for endpoint validation
+- API testing scripts in the `scripts/` directory for endpoint validation
 
-## API Testing
+## Test Scripts
 
-A shell script is provided for API testing:
+Test scripts are located in the `scripts/` directory and provide automated testing for various features:
+
+- `test-import-api.sh` - API testing script for endpoint validation
+- `test-chart-features.sh` - Chart feature testing script with comprehensive functionality tests
+
+### Running Test Scripts
+
 ```bash
 # Run the application first
 dotnet run
 
-# In another terminal, execute the test script
-./test-import-api.sh
+# In another terminal, execute the API test script
+./scripts/test-import-api.sh
+
+# Or execute the chart feature test script
+./scripts/test-chart-features.sh
 ```
 
 ## Data Files
