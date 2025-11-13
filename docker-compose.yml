@@ -8,7 +8,8 @@ services:
       dockerfile: Dockerfile
     container_name: poweranalysis-web
     ports:
-      - "8080:80"
+      # 原本使用 8080:80，改為 8765 以避免與其他容器衝突
+      - "8765:80"
       - "8443:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production

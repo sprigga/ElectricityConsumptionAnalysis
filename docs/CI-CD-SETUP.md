@@ -339,7 +339,8 @@ environment:
 1. **检查应用是否正常运行**:
    ```bash
    docker-compose ps
-   curl http://localhost:8080/health
+   # 原本使用 8080，改為 8765 以避免與其他容器衝突
+   curl http://localhost:8765/health
    ```
 
 2. **检查防火墙规则**:

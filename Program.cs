@@ -36,6 +36,27 @@ builder.Services.AddLogging();
 
 var app = builder.Build();
 
+// 自動執行資料庫遷移 (Migration)
+// 在應用程式啟動時自動將資料庫結構更新到最新版本
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        // 執行未套用的遷移
+        context.Database.Migrate();
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("資料庫遷移已成功執行");
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "執行資料庫遷移時發生錯誤");
+        throw; // 如果遷移失敗，應用程式不應該啟動
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

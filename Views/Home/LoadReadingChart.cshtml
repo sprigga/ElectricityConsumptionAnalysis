@@ -76,6 +76,119 @@
         margin-bottom: 8px;
     }
 
+    /* 新增：時間選擇器樣式 */
+    .datetime-group {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 8px;
+    }
+
+    .time-select {
+        padding: 10px 14px;
+        border: 1px solid rgba(200, 190, 175, 0.4);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.6);
+        font-family: var(--font-family);
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+    }
+
+    .time-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* 新增：報表列表樣式 */
+    .data-table-section {
+        background: rgba(255, 255, 255, 0.45);
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 24px;
+        border: 1px solid rgba(200, 190, 175, 0.4);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .data-table-wrapper {
+        overflow-x: auto;
+        margin-top: 16px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .data-table thead {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    .data-table th {
+        padding: 12px 16px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .data-table td {
+        padding: 10px 16px;
+        border-bottom: 1px solid rgba(200, 190, 175, 0.2);
+        font-size: 0.9rem;
+    }
+
+    .data-table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.05);
+    }
+
+    .data-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .table-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 16px;
+        padding: 12px 0;
+    }
+
+    .pagination-info {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 8px;
+    }
+
+    .pagination-btn {
+        padding: 6px 12px;
+        border: 1px solid rgba(200, 190, 175, 0.4);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.6);
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: var(--primary-gradient);
+        color: white;
+        border-color: transparent;
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
     .loading-overlay {
         position: absolute;
         top: 0;
@@ -142,6 +255,20 @@
         .stats-grid {
             grid-template-columns: 1fr;
         }
+
+        /* 新增：手機版樣式調整 */
+        .datetime-group {
+            grid-template-columns: 1fr;
+        }
+
+        .data-table {
+            font-size: 0.8rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 8px 10px;
+        }
     }
 </style>
 
@@ -156,15 +283,31 @@
         <div class="date-inputs">
             <div class="input-group">
                 <label for="startDate">
-                    <i class="bi bi-calendar-range"></i> 起始日期
+                    <i class="bi bi-calendar-range"></i> 起始日期與時間
                 </label>
-                <input type="text" class="input-field" id="startDate" placeholder="選擇起始日期">
+                <!-- 原有：單純日期選擇 -->
+                <!--<input type="text" class="input-field" id="startDate" placeholder="選擇起始日期">-->
+                <!-- 新增：日期與時間組合 -->
+                <div class="datetime-group">
+                    <input type="text" class="input-field" id="startDate" placeholder="選擇起始日期">
+                    <select class="time-select" id="startTime">
+                        <!-- 時間選項將由 JavaScript 動態生成 -->
+                    </select>
+                </div>
             </div>
             <div class="input-group">
                 <label for="endDate">
-                    <i class="bi bi-calendar-check"></i> 結束日期
+                    <i class="bi bi-calendar-check"></i> 結束日期與時間
                 </label>
-                <input type="text" class="input-field" id="endDate" placeholder="選擇結束日期">
+                <!-- 原有：單純日期選擇 -->
+                <!--<input type="text" class="input-field" id="endDate" placeholder="選擇結束日期">-->
+                <!-- 新增：日期與時間組合 -->
+                <div class="datetime-group">
+                    <input type="text" class="input-field" id="endDate" placeholder="選擇結束日期">
+                    <select class="time-select" id="endTime">
+                        <!-- 時間選項將由 JavaScript 動態生成 -->
+                    </select>
+                </div>
             </div>
         </div>
         <button type="button" class="btn" id="queryBtn" style="width: 100%;">
@@ -208,6 +351,42 @@
         </div>
     </div>
 
+    <!-- 新增：數據報表列表區域 -->
+    <div class="data-table-section" id="dataTableCard" style="display: none;">
+        <h5 style="margin-bottom: 16px; display: flex; align-items: center;">
+            <i class="bi bi-table"></i>
+            <span style="margin-left: 8px;">數據報表</span>
+            <span class="chart-badge" id="tableRecordCount">0 筆</span>
+        </h5>
+        <div class="data-table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>序號</th>
+                        <th>時間標籤</th>
+                        <th>負載量 (MW)</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody">
+                    <!-- 數據將由 JavaScript 動態填充 -->
+                </tbody>
+            </table>
+        </div>
+        <div class="table-pagination">
+            <div class="pagination-info" id="paginationInfo">
+                顯示第 0-0 筆，共 0 筆記錄
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevPageBtn" disabled>
+                    <i class="bi bi-chevron-left"></i> 上一頁
+                </button>
+                <button class="pagination-btn" id="nextPageBtn" disabled>
+                    下一頁 <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 錯誤訊息 -->
     <div id="errorAlert" class="alert-message">
         <i class="bi bi-exclamation-triangle-fill"></i>
@@ -226,6 +405,37 @@
     let chart = null;
     let startDatePicker, endDatePicker;
     let dbDateRange = null;
+    // 新增：報表分頁變數
+    let currentTableData = [];
+    let currentPage = 1;
+    const rowsPerPage = 50;
+
+    // 新增：初始化時間選擇器（30分鐘間隔，預設00:00）
+    function initializeTimeSelects() {
+        const startTimeSelect = document.getElementById('startTime');
+        const endTimeSelect = document.getElementById('endTime');
+
+        // 生成30分鐘間隔的時間選項
+        for (let hour = 0; hour < 24; hour++) {
+            for (let minute = 0; minute < 60; minute += 30) {
+                const timeValue = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+                const startOption = document.createElement('option');
+                startOption.value = timeValue;
+                startOption.textContent = timeValue;
+                startTimeSelect.appendChild(startOption);
+
+                const endOption = document.createElement('option');
+                endOption.value = timeValue;
+                endOption.textContent = timeValue;
+                endTimeSelect.appendChild(endOption);
+            }
+        }
+
+        // 設定預設值為 00:00
+        startTimeSelect.value = '00:00';
+        endTimeSelect.value = '00:00';
+    }
 
     // 初始化：先獲取資料庫日期範圍
     async function initialize() {
@@ -241,6 +451,9 @@
                 showError('資料庫中沒有數據，請先導入數據');
                 return;
             }
+
+            // 新增：初始化時間選擇器
+            initializeTimeSelects();
 
             // 初始化日期選擇器
             initializeDatePickers();
@@ -331,37 +544,57 @@
             return;
         }
 
-        // 格式化日期為 YYYY-MM-DD
-        const startStr = startDate.toISOString().split('T')[0];
-        const endStr = endDate.toISOString().split('T')[0];
+        // 新增：獲取時間選擇器的值
+        const startTime = document.getElementById('startTime').value;
+        const endTime = document.getElementById('endTime').value;
+
+        // 原有：格式化日期為 YYYY-MM-DD
+        // 修改：包含時間資訊 YYYY-MM-DD HH:mm
+        const startStr = startDate.toISOString().split('T')[0] + ' ' + startTime;
+        const endStr = endDate.toISOString().split('T')[0] + ' ' + endTime;
 
         // 計算日期差異，包含起始和結束日期（+1）
         const diffTime = Math.abs(endDate - startDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
+        console.log('查詢時間範圍:', startStr, '至', endStr); // 新增：除錯用
+
         // 顯示載入指示器
         showLoading();
 
         try {
-            // 調用 API 獲取數據
-            const response = await fetch(`/api/loadreading/aggregated?startDate=${startStr}&endDate=${endStr}&days=${diffDays}`);
+            // 新增：同時獲取圖表數據和報表數據
+            // 圖表數據（聚合後）- 用於顯示圖表和統計
+            const chartResponse = await fetch(`/api/loadreading/aggregated?startDate=${startStr}&endDate=${endStr}&days=${diffDays}`);
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (!chartResponse.ok) {
+                throw new Error(`HTTP error! status: ${chartResponse.status}`);
             }
 
-            const data = await response.json();
+            const chartData = await chartResponse.json();
 
-            if (!data || data.length === 0) {
+            if (!chartData || chartData.length === 0) {
                 showError('查詢範圍內沒有數據');
                 return;
             }
 
             // 顯示圖表
-            displayChart(data, diffDays);
+            displayChart(chartData, diffDays);
 
             // 顯示統計資訊
-            displayStatistics(data);
+            displayStatistics(chartData);
+
+            // 新增：獲取報表數據（原始資料）- 用於顯示報表列表
+            const reportResponse = await fetch(`/api/loadreading/aggregated?startDate=${startStr}&endDate=${endStr}&days=${diffDays}&reportMode=true`);
+
+            if (!reportResponse.ok) {
+                throw new Error(`HTTP error! status: ${reportResponse.status}`);
+            }
+
+            const reportData = await reportResponse.json();
+
+            // 顯示數據報表（使用原始資料）
+            displayDataTable(reportData);
 
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -369,6 +602,65 @@
         } finally {
             hideLoading();
         }
+    }
+
+    // 新增：顯示數據報表列表
+    function displayDataTable(data) {
+        currentTableData = data;
+        currentPage = 1;
+        renderTablePage();
+
+        // 顯示表格區域
+        document.getElementById('dataTableCard').style.display = 'block';
+
+        // 綁定分頁按鈕事件
+        document.getElementById('prevPageBtn').onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTablePage();
+            }
+        };
+
+        document.getElementById('nextPageBtn').onclick = () => {
+            const totalPages = Math.ceil(currentTableData.length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTablePage();
+            }
+        };
+    }
+
+    // 新增：渲染表格分頁
+    function renderTablePage() {
+        const tbody = document.getElementById('dataTableBody');
+        tbody.innerHTML = '';
+
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = Math.min(startIndex + rowsPerPage, currentTableData.length);
+        const pageData = currentTableData.slice(startIndex, endIndex);
+
+        // 填充表格數據
+        pageData.forEach((item, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${startIndex + index + 1}</td>
+                <td>${item.label}</td>
+                <td>${item.value.toFixed(3)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // 更新分頁資訊
+        const totalRecords = currentTableData.length;
+        const totalPages = Math.ceil(totalRecords / rowsPerPage);
+
+        document.getElementById('tableRecordCount').textContent = `${totalRecords} 筆`;
+        document.getElementById('paginationInfo').textContent =
+            `顯示第 ${startIndex + 1}-${endIndex} 筆，共 ${totalRecords} 筆記錄`;
+
+        // 更新分頁按鈕狀態
+        document.getElementById('prevPageBtn').disabled = currentPage === 1;
+        document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
     }
 
     // 顯示圖表
@@ -380,10 +672,12 @@
             chart.destroy();
         }
 
-        // 準備圖表數據
+        // 修改：準備圖表數據，根據天數決定顯示單折線或雙折線
         let labels = data.map(d => d.label);
-        let values = data.map(d => d.value);
         let chartTypeText = '';
+
+        // 判斷數據格式：一週內使用 value，超過一週使用 average 和 total
+        const hasAggregateData = diffDays > 7 && data.length > 0 && data[0].average !== undefined;
 
         if (diffDays === 1) {
             chartTypeText = '按小時';
@@ -395,24 +689,71 @@
             chartTypeText = '按週';
         }
 
+        // 原有邏輯：一週內顯示單折線（平均值）
+        // let values = data.map(d => d.value);
+
+        let datasets = [];
+
+        // 新邏輯：根據數據格式決定顯示單折線或雙折線
+        if (hasAggregateData) {
+            // 超過一週：顯示雙折線（平均值和總和）
+            let averageValues = data.map(d => d.average);
+            let totalValues = data.map(d => d.total);
+
+            datasets = [
+                {
+                    label: '平均負載 (MW)',
+                    data: averageValues,
+                    borderColor: 'rgb(102, 126, 234)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgb(102, 126, 234)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '總負載 (MWh)',
+                    data: totalValues,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: 'rgb(255, 99, 132)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    yAxisID: 'y1'
+                }
+            ];
+        } else {
+            // 一週內：顯示單折線
+            let values = data.map(d => d.value);
+            datasets = [{
+                label: '負載量 (MW)',
+                data: values,
+                borderColor: 'rgb(102, 126, 234)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: diffDays <= 7 ? 2 : 3,
+                pointHoverRadius: 6,
+                pointBackgroundColor: 'rgb(102, 126, 234)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }];
+        }
+
         // 創建圖表
         chart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: '負載量 (MW)',
-                    data: values,
-                    borderColor: 'rgb(102, 126, 234)',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: diffDays <= 7 ? 2 : 3,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: 'rgb(102, 126, 234)',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
-                }]
+                datasets: datasets
             },
             options: {
                 responsive: true,
@@ -442,12 +783,83 @@
                         padding: 12,
                         callbacks: {
                             label: function(context) {
-                                return '負載: ' + context.parsed.y.toFixed(3) + ' MW';
+                                // 修改：根據數據集顯示不同的標籤
+                                if (hasAggregateData) {
+                                    if (context.datasetIndex === 0) {
+                                        return '平均負載: ' + context.parsed.y.toFixed(3) + ' MW';
+                                    } else {
+                                        return '總負載: ' + context.parsed.y.toFixed(3) + ' MWh';
+                                    }
+                                } else {
+                                    return '負載: ' + context.parsed.y.toFixed(3) + ' MW';
+                                }
                             }
                         }
                     }
                 },
-                scales: {
+                // 修改：根據是否為聚合數據配置不同的 Y 軸
+                scales: hasAggregateData ? {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: diffDays === 1 ? '時間' : (diffDays <= 7 ? '日期/時間' : (diffDays <= 60 ? '日期' : '週數')),
+                            font: {
+                                family: 'var(--font-family)',
+                                size: 13,
+                                weight: '600'
+                            }
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: '平均負載 (MW)',
+                            font: {
+                                family: 'var(--font-family)',
+                                size: 13,
+                                weight: '600'
+                            },
+                            color: 'rgb(102, 126, 234)'
+                        },
+                        beginAtZero: false,
+                        ticks: {
+                            color: 'rgb(102, 126, 234)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: '總負載 (MWh)',
+                            font: {
+                                family: 'var(--font-family)',
+                                size: 13,
+                                weight: '600'
+                            },
+                            color: 'rgb(255, 99, 132)'
+                        },
+                        beginAtZero: false,
+                        ticks: {
+                            color: 'rgb(255, 99, 132)'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                } : {
                     x: {
                         display: true,
                         title: {
@@ -499,11 +911,34 @@
 
     // 顯示統計資訊
     function displayStatistics(data) {
-        const values = data.map(d => d.value);
-        const count = values.length;
-        const sum = values.reduce((a, b) => a + b, 0);
-        const avg = sum / count;
-        const peak = Math.max(...values);
+        // 修改：根據數據格式決定如何計算統計資訊
+        // 原有邏輯：只使用 value 欄位
+        // const values = data.map(d => d.value);
+        // const count = values.length;
+        // const sum = values.reduce((a, b) => a + b, 0);
+        // const avg = sum / count;
+        // const peak = Math.max(...values);
+
+        // 新邏輯：檢查數據格式並相應計算
+        const hasAggregateData = data.length > 0 && data[0].average !== undefined;
+
+        let count, avg, peak;
+
+        if (hasAggregateData) {
+            // 聚合數據：使用 average 和 count
+            const averageValues = data.map(d => d.average);
+            count = data.reduce((sum, d) => sum + (d.count || 0), 0); // 總資料點數
+            const totalAvg = data.reduce((sum, d) => sum + d.average, 0);
+            avg = totalAvg / data.length; // 平均的平均值
+            peak = Math.max(...averageValues);
+        } else {
+            // 原始數據：使用 value
+            const values = data.map(d => d.value);
+            count = values.length;
+            const sum = values.reduce((a, b) => a + b, 0);
+            avg = sum / count;
+            peak = Math.max(...values);
+        }
 
         document.getElementById('dataPointCount').textContent = count;
         document.getElementById('avgLoad').textContent = avg.toFixed(3) + ' MW';

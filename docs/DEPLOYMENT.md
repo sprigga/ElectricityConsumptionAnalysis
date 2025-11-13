@@ -39,7 +39,7 @@ docker-compose down
 ```
 
 应用将在以下地址可访问：
-- 应用程序: http://localhost:8080
+- 应用程序: http://localhost:8765  # 原本使用 8080，改為 8765 以避免與其他容器衝突
 - HTTPS (如果配置): https://localhost:8443
 
 #### 启动包含 Nginx 的完整环境
@@ -268,7 +268,8 @@ docker-compose up -d --scale web=3
 docker-compose ps
 
 # 测试应用健康检查端点
-curl http://localhost:8080/health
+# 原本使用 8080，改為 8765 以避免與其他容器衝突
+curl http://localhost:8765/health
 ```
 
 ### 容器维护
@@ -311,11 +312,12 @@ sudo chown -R 1000:1000 data/
 
 ```bash
 # 检查端口占用
-sudo netstat -tulpn | grep :8080
+# 原本使用 8080，現已改為 8765 以避免與其他容器衝突
+sudo netstat -tulpn | grep :8765
 
-# 修改 docker-compose.yml 中的端口映射
+# 如需進一步修改 docker-compose.yml 中的端口映射
 ports:
-  - "8081:80"  # 将本地端口改为 8081
+  - "8766:80"  # 可以改為其他未使用的端口
 ```
 
 ## 安全建议

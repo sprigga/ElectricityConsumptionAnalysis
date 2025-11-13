@@ -74,18 +74,29 @@ public class LoadReadingController : ControllerBase
     /// <summary>
     /// 根據日期範圍取得聚合的負載讀數（用於圖表顯示）
     /// </summary>
+    /// <param name="reportMode">是否為報表模式（true: 以30分鐘間隔顯示, false: 按照天數邏輯顯示）</param>
     [HttpGet("aggregated")]
     public async Task<IActionResult> GetAggregatedData(
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate,
-        [FromQuery] int days)
+        [FromQuery] int days,
+        [FromQuery] bool reportMode = false)
     {
         try
         {
-            // 確保開始日期從當天 00:00:00 開始
-            var adjustedStartDate = startDate.Date;
-            // 確保結束日期包含整天
-            var adjustedEndDate = endDate.Date.AddDays(1).AddSeconds(-1);
+            // 原有：強制調整為整天範圍
+            // var adjustedStartDate = startDate.Date;
+            // var adjustedEndDate = endDate.Date.AddDays(1).AddSeconds(-1);
+
+            // 修改：支援自訂時間，如果有指定時間則使用，否則預設為整天
+            // 前端會傳送包含時間的 DateTime，所以直接使用傳入的值
+            var adjustedStartDate = startDate;
+
+            // 修正：如果結束時間是 00:00:00，調整為前一天的 23:59:59
+            // 這樣可以確保包含整天的資料，而不是只查到 00:00 這個時間點
+            var adjustedEndDate = endDate.TimeOfDay == TimeSpan.Zero && endDate > startDate
+                ? endDate.AddDays(1).AddSeconds(-1)
+                : endDate;
 
             var loadReadings = await _repository.GetByDateRangeAsync(adjustedStartDate, adjustedEndDate);
             var dataList = loadReadings.ToList();
@@ -97,9 +108,26 @@ public class LoadReadingController : ControllerBase
 
             List<object> result;
 
-            if (days <= 7)
+            // 新增：報表模式 - 返回所有原始資料（每30分鐘一筆）
+            if (reportMode)
             {
-                // 一週內：按小時顯示（包含日期和小時）
+                result = dataList
+                    .OrderBy(r => r.Timestamp)
+                    .Select(r => new
+                    {
+                        id = r.Id,
+                        timestamp = r.Timestamp,
+                        label = r.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"),
+                        value = r.LoadValue,
+                        dataSource = r.DataSource,
+                        importedAt = r.ImportedAt
+                    })
+                    .Cast<object>()
+                    .ToList();
+            }
+            // 原有：圖表顯示邏輯 - 一週內：按小時顯示（包含日期和小時）
+            else if (days <= 7)
+            {
                 result = dataList
                     .GroupBy(r => new
                     {
@@ -121,21 +149,55 @@ public class LoadReadingController : ControllerBase
             }
             else if (days <= 60)
             {
-                // 一週到兩個月：按日期顯示（每天平均）
+                // 修改：一週到兩個月：按日期顯示（每天平均和總和）
+                // 原有邏輯：只返回平均值
+                // result = dataList
+                //     .GroupBy(r => r.Timestamp.Date)
+                //     .OrderBy(g => g.Key)
+                //     .Select(g => new
+                //     {
+                //         label = g.Key.ToString("MM/dd"),
+                //         value = g.Average(r => r.LoadValue)
+                //     })
+                //     .Cast<object>()
+                //     .ToList();
+
+                // 新邏輯：返回平均值和總和
                 result = dataList
                     .GroupBy(r => r.Timestamp.Date)
                     .OrderBy(g => g.Key)
                     .Select(g => new
                     {
                         label = g.Key.ToString("MM/dd"),
-                        value = g.Average(r => r.LoadValue)
+                        average = g.Average(r => r.LoadValue),  // 每日平均值
+                        total = g.Sum(r => r.LoadValue),        // 每日總和
+                        count = g.Count()                        // 資料點數量（供參考）
                     })
                     .Cast<object>()
                     .ToList();
             }
             else
             {
-                // 超過兩個月：按週顯示（每週平均）
+                // 修改：超過兩個月：按週顯示（每週平均和總和）
+                // 原有邏輯：只返回平均值
+                // result = dataList
+                //     .GroupBy(r =>
+                //     {
+                //         // 計算週數（從 startDate 開始計算）
+                //         var weekNumber = (int)Math.Floor((r.Timestamp.Date - startDate.Date).TotalDays / 7);
+                //         var weekStart = startDate.Date.AddDays(weekNumber * 7);
+                //         return new { WeekNumber = weekNumber + 1, WeekStart = weekStart };
+                //     })
+                //     .OrderBy(g => g.Key.WeekNumber)
+                //     .Select(g => new
+                //     {
+                //         label = $"第 {g.Key.WeekNumber} 週",
+                //         value = g.Average(r => r.LoadValue)
+                //     })
+                //     .Cast<object>()
+                //     .ToList();
+
+                // 新邏輯：返回平均值和總和
                 result = dataList
                     .GroupBy(r =>
                     {
@@ -148,7 +210,9 @@ public class LoadReadingController : ControllerBase
                     .Select(g => new
                     {
                         label = $"第 {g.Key.WeekNumber} 週",
-                        value = g.Average(r => r.LoadValue)
+                        average = g.Average(r => r.LoadValue),  // 每週平均值
+                        total = g.Sum(r => r.LoadValue),        // 每週總和
+                        count = g.Count()                        // 資料點數量（供參考）
                     })
                     .Cast<object>()
                     .ToList();
