@@ -244,10 +244,32 @@ dotnet run --urls=http://localhost:8765
 7. Use the Load Reading Chart interface for data visualization
 
 ### Testing
-The project includes comprehensive testing functionality:
-- Console-based import testing via TestImport.cs for data import validation
-- API testing scripts in the `scripts/` directory for endpoint validation
-- Unit and integration tests (can be run with `dotnet test`)
+The project includes comprehensive automated testing with **233+ tests**:
+- **Unit Tests:** Service layer, Repository layer, Models (xUnit, Moq, FluentAssertions)
+- **Integration Tests:** API endpoints, Database operations
+- **Code Coverage:** 80%+ target with Coverlet
+- **Manual Tests:** Console-based import testing (TestImport.cs), Bash scripts
+- **CI/CD:** Automated test execution with coverage reporting
+
+📚 **See [README_TESTING.md](README_TESTING.md) for complete testing documentation**
+
+#### Quick Start - Running Tests
+```bash
+# Run all tests
+dotnet test
+
+# Run tests with coverage
+dotnet test --collect:"XPlat Code Coverage" --settings PowerAnalysis.Tests/coverlet.runsettings
+
+# Run specific test category
+dotnet test --filter "FullyQualifiedName~LoadReadingImportServiceTests"
+```
+
+#### Test Coverage Breakdown
+- Service Layer: 53 tests (Excel import, parsing, validation)
+- Repository Layer: 80 tests (CRUD, queries, performance)
+- Controller Layer: 60+ tests (All 9 API endpoints)
+- Model Layer: 40+ tests (Validation, constraints)
 
 ## Test Scripts
 
